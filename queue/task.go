@@ -44,6 +44,17 @@ const (
 	ErrorBucket = "later_error"
 )
 
+// NextRetryDelay returns the delay in seconds before the next retry
+func (t *Task) NextRetryDelay() int64 {
+	switch t.RetryStrategy {
+	case RetryExponential:
+		// 2, 4, 8, 16... * RetryInterval
+		return int64(1<<uint(t.HasRetry)) * t.RetryInterval
+	default: // RetryFixed
+		return t.RetryInterval
+	}
+}
+
 // MarshalTask serializes a task to JSON bytes
 func MarshalTask(task *Task) ([]byte, error) {
 	return json.Marshal(task)

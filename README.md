@@ -31,7 +31,7 @@ Usage of ./later:
 
 - Delay push message to target
 - At-lease-once delivery
-- Fail and retry
+- Fail and retry with two strategies: **fixed interval** or **exponential backoff**
 - Reliable
 - Performance
 - **Dual backend**: Redis (Sorted Set polling) or RabbitMQ (DLX push)
@@ -60,7 +60,9 @@ Response http code: **200** success, **400** request invalid, **404** task not f
   {
   	"topic":"order",
   	"delay":15, // second
-  	"retry":3,  // max retry 3 times, interval 10,20,40... seconds
+  	"retry":3,  // max retry 3 times
+  	"retry_strategy":"exponential", // "fixed" or "exponential", default "exponential"
+  	"retry_interval":10, // base retry interval in seconds, default 10
   	"callback":"http://127.0.0.1:8888/", // http post to target url
   	"content":"hello" // content to post
   }
@@ -69,6 +71,17 @@ Response http code: **200** success, **400** request invalid, **404** task not f
       "id": "35adbde5-77c4-4d65-adac-0082d91f2554"
   }
   ```
+
+  **Retry Strategies:**
+
+  | Strategy | retry_interval=10, retry=3 的延迟序列 | 说明 |
+  |---|---|---|
+  | `fixed` | 10s, 10s, 10s | 每次重试间隔固定不变 |
+  | `exponential` | 20s, 40s, 80s | 每次重试间隔翻倍 (2^n × interval) |
+
+  - 执行成功 → 队列丢弃消息（删除任务）
+  - 执行失败 → 按策略延迟后继续重试
+  - 重试次数超过 max_retry → 丢弃消息（删除任务）
 
 - Delete Task
 
@@ -95,11 +108,15 @@ Response http code: **200** success, **400** request invalid, **404** task not f
       "execute_time": 1504934230,
       "max_retry": 1,
       "has_retry": 0,
+      "retry_strategy": 1,
+      "retry_interval": 10,
       "callback": "http://127.0.0.1:8888/success",
       "content": "hello",
       "creat_time": 1504934220
   }
   ```
+
+  `retry_strategy`: 0=fixed, 1=exponential
 
 ## Backend API
 

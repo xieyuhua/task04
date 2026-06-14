@@ -26,8 +26,12 @@ type createRequest struct {
 	// Delay is the number of seconds that should elapse before the task execute
 	Delay    int64  `json:"delay"`
 	Retry    int    `json:"retry"`
-	Callback string `json:"callback"`
-	Content  string `json:"content"`
+	// RetryStrategy: "fixed" or "exponential", default "exponential"
+	RetryStrategy string `json:"retry_strategy"`
+	// RetryInterval is the base retry interval in seconds, default 10
+	RetryInterval int64  `json:"retry_interval"`
+	Callback      string `json:"callback"`
+	Content       string `json:"content"`
 }
 
 type createResponse struct {
@@ -39,14 +43,27 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 	if ok := decode(w, r, &request); !ok {
 		return
 	}
+
+	// default retry strategy
+	strategy := RetryExponential
+	if request.RetryStrategy == "fixed" {
+		strategy = RetryFixed
+	}
+	retryInterval := request.RetryInterval
+	if retryInterval <= 0 {
+		retryInterval = int64(RetryInterval)
+	}
+
 	task := &Task{
-		ID:          uuid.New(),
-		Topic:       request.Topic,
-		ExecuteTime: time.Now().Unix() + request.Delay,
-		MaxRetry:    request.Retry,
-		Callback:    request.Callback,
-		Content:     request.Content,
-		CreatTime:   time.Now().Unix(),
+		ID:            uuid.New(),
+		Topic:         request.Topic,
+		ExecuteTime:   time.Now().Unix() + request.Delay,
+		MaxRetry:      request.Retry,
+		RetryStrategy: strategy,
+		RetryInterval: retryInterval,
+		Callback:      request.Callback,
+		Content:       request.Content,
+		CreatTime:     time.Now().Unix(),
 	}
 	err := backend.CreateTask(task)
 	if err != nil {
@@ -85,14 +102,16 @@ type queryRequest struct {
 }
 
 type queryResponse struct {
-	ID          string `json:"id"`
-	Topic       string `json:"topic"`
-	ExecuteTime int64  `json:"execute_time"`
-	MaxRetry    int    `json:"max_retry"`
-	HasRetry    int    `json:"has_retry"`
-	Callback    string `json:"callback"`
-	Content     string `json:"content"`
-	CreatTime   int64  `json:"creat_time"`
+	ID            string `json:"id"`
+	Topic         string `json:"topic"`
+	ExecuteTime   int64  `json:"execute_time"`
+	MaxRetry      int    `json:"max_retry"`
+	HasRetry      int    `json:"has_retry"`
+	RetryStrategy int    `json:"retry_strategy"`
+	RetryInterval int64  `json:"retry_interval"`
+	Callback      string `json:"callback"`
+	Content       string `json:"content"`
+	CreatTime     int64  `json:"creat_time"`
 }
 
 func queryHandler(w http.ResponseWriter, r *http.Request) {
@@ -115,14 +134,16 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response := queryResponse{
-		ID:          task.ID,
-		Topic:       task.Topic,
-		ExecuteTime: task.ExecuteTime,
-		MaxRetry:    task.MaxRetry,
-		HasRetry:    task.HasRetry,
-		Callback:    task.Callback,
-		Content:     task.Content,
-		CreatTime:   task.CreatTime,
+		ID:            task.ID,
+		Topic:         task.Topic,
+		ExecuteTime:   task.ExecuteTime,
+		MaxRetry:      task.MaxRetry,
+		HasRetry:      task.HasRetry,
+		RetryStrategy: int(task.RetryStrategy),
+		RetryInterval: task.RetryInterval,
+		Callback:      task.Callback,
+		Content:       task.Content,
+		CreatTime:     task.CreatTime,
 	}
 	write(w, response)
 }

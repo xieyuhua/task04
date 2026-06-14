@@ -1,7 +1,6 @@
 package queue
 
 import (
-	"math"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -113,8 +112,7 @@ retry:
 	if err != nil {
 		log.WithError(err).Error("update task fail")
 	}
-	// (1,2,4,8...) * X
-	score := time.Now().Unix() + int64(math.Pow(2, float64(task.HasRetry-1)))*int64(RetryInterval)
+	score := time.Now().Unix() + task.NextRetryDelay()
 	err = backend.UnackToError(id, score)
 	if err != nil {
 		log.WithError(err).Error("transfer from unack to error bucket fail")
