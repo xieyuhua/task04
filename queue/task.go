@@ -1,10 +1,15 @@
 package queue
 
-import (
-	"encoding/json"
-	"fmt"
+import "encoding/json"
 
-	"github.com/garyburd/redigo/redis"
+// RetryStrategy defines how retry delay is calculated
+type RetryStrategy int
+
+const (
+	// RetryFixed uses a constant delay between retries
+	RetryFixed RetryStrategy = iota
+	// RetryExponential uses 2^n * interval delay (2, 4, 8, 16...)
+	RetryExponential
 )
 
 // Task is the task to execute
@@ -17,8 +22,14 @@ type Task struct {
 	ExecuteTime int64
 	// MaxRetry is max deliver retry times
 	MaxRetry int
-	//HasRetry is the current retry times
+	// HasRetry is the current retry times
 	HasRetry int
+	// RetryStrategy: 0=fixed, 1=exponential
+	RetryStrategy RetryStrategy `json:"retry_strategy"`
+	// RetryInterval is the base retry interval in seconds
+	// For fixed strategy: delay = RetryInterval every time
+	// For exponential strategy: delay = 2^HasRetry * RetryInterval (2,4,8,16...)
+	RetryInterval int64 `json:"retry_interval"`
 	// Callback is the deliver address
 	Callback string
 	// Content is the task content to deliver
@@ -33,106 +44,14 @@ const (
 	ErrorBucket = "later_error"
 )
 
-func createTask(task *Task) error {
-	data, err := json.Marshal(task)
-	if err != nil {
-		return err
-	}
-	c := pool.Get()
-	defer c.Close()
-	_, err = c.Do("SET", task.ID, String(data), "EX", TaskTTL)
-	if err != nil {
-		return err
-	}
-	_, err = c.Do("ZADD", DelayBucket, task.ExecuteTime, task.ID)
-	return err
+// MarshalTask serializes a task to JSON bytes
+func MarshalTask(task *Task) ([]byte, error) {
+	return json.Marshal(task)
 }
 
-func updateTask(task *Task) error {
-	data, err := json.Marshal(task)
-	if err != nil {
-		return err
-	}
-	c := pool.Get()
-	defer c.Close()
-	ttl, err := redis.Int(c.Do("TTL", task.ID))
-	if err != nil {
-		return err
-	}
-	_, err = c.Do("SET", task.ID, String(data), "EX", ttl)
-	return err
-}
-
-func getTask(id string) (*Task, error) {
-	c := pool.Get()
-	defer c.Close()
-	data, err := redis.String(c.Do("GET", id))
-	if err != nil {
-		return nil, err
-	}
+// UnmarshalTask deserializes a task from JSON bytes
+func UnmarshalTask(data []byte) (*Task, error) {
 	var task Task
-	err = json.Unmarshal(Slice(data), &task)
+	err := json.Unmarshal(data, &task)
 	return &task, err
-}
-
-func getTasks(bucket string, begin int64, end int64) ([]string, error) {
-	c := pool.Get()
-	defer c.Close()
-	return redis.Strings(c.Do("ZRANGEBYSCORE", bucket, begin, end, "LIMIT", "0", fmt.Sprintf("%v", ZrangeCount)))
-}
-
-func delayToUnack(id string, score int64) (bool, error) {
-	return bucketTransfer(DelayBucket, UnackBucket, id, score)
-}
-
-func unackToDelay(id string, score int64) (bool, error) {
-	return bucketTransfer(UnackBucket, DelayBucket, id, score)
-}
-
-func errorToDelay(id string, score int64) (bool, error) {
-	return bucketTransfer(ErrorBucket, DelayBucket, id, score)
-}
-
-func bucketTransfer(from string, to string, id string, score int64) (bool, error) {
-	c := pool.Get()
-	defer c.Close()
-	reply, err := redis.Int(c.Do("ZADD", to, score, id))
-	if err != nil {
-		return false, err
-	}
-	if reply == 0 {
-		return false, nil
-	}
-	_, err = c.Do("ZREM", from, id)
-	return true, err
-}
-
-func unackToError(id string, score int64) error {
-	c := pool.Get()
-	defer c.Close()
-	_, err := c.Do("ZADD", ErrorBucket, score, id)
-	if err != nil {
-		return err
-	}
-	_, err = c.Do("ZREM", UnackBucket, id)
-	return err
-}
-
-func deleteTask(id string) error {
-	c := pool.Get()
-	defer c.Close()
-	_, err := c.Do("DEL", id)
-	if err != nil {
-		return err
-	}
-	_, err = c.Do("ZREM", DelayBucket, id)
-	if err != nil {
-		return err
-	}
-	_, err = c.Do("ZREM", UnackBucket, id)
-	if err != nil {
-		return err
-	}
-	_, err = c.Do("ZREM", ErrorBucket, id)
-	return err
 }

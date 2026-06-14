@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -49,7 +48,7 @@ func createHandler(w http.ResponseWriter, r *http.Request) {
 		Content:     request.Content,
 		CreatTime:   time.Now().Unix(),
 	}
-	err := createTask(task)
+	err := backend.CreateTask(task)
 	if err != nil {
 		log.WithError(err).Error("create task fail")
 		w.WriteHeader(500)
@@ -72,7 +71,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
 		return
 	}
-	err := deleteTask(request.ID)
+	err := backend.DeleteTask(request.ID)
 	if err != nil {
 		log.WithError(err).Error("delete task fail")
 		w.WriteHeader(500)
@@ -105,9 +104,9 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(400)
 		return
 	}
-	task, err := getTask(request.ID)
+	task, err := backend.GetTask(request.ID)
 	if err != nil {
-		if err == redis.ErrNil {
+		if err == ErrTaskNotFound {
 			w.WriteHeader(404)
 			return
 		}

@@ -4,10 +4,10 @@ import (
 	"math"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
 	log "github.com/sirupsen/logrus"
 )
 
+// RunWorker starts all background workers
 func RunWorker() {
 	go delayWorker()
 	go unackWorker()
@@ -15,11 +15,16 @@ func RunWorker() {
 }
 
 func delayWorker() {
+	// If backend supports push-based delay (e.g. RabbitMQ DLX), skip polling
+	if rb, ok := backend.(*RabbitMQBackend); ok {
+		rb.ConsumeDelayQueue()
+		return
+	}
 	ticker := time.NewTicker(DelayWorkerInterval)
 	for range ticker.C {
 		begin := time.Now().Add(-time.Duration(TaskTTL) * time.Second).Unix()
 		end := time.Now().Add(-CallbackTTR).Unix()
-		ids, err := getTasks(DelayBucket, begin, end)
+		ids, err := backend.GetReadyIDs(DelayBucket, begin, end)
 		if err != nil {
 			log.WithError(err).Error("get tasks fail")
 			continue
@@ -35,13 +40,13 @@ func unackWorker() {
 	for range ticker.C {
 		begin := time.Now().Add(-time.Duration(TaskTTL)).Unix()
 		end := time.Now().Unix()
-		ids, err := getTasks(UnackBucket, begin, end)
+		ids, err := backend.GetReadyIDs(UnackBucket, begin, end)
 		if err != nil {
 			log.WithError(err).Error("get unack tasks fail")
 			continue
 		}
 		for _, id := range ids {
-			if _, err := unackToDelay(id, time.Now().Unix()); err != nil {
+			if _, err := backend.UnackToDelay(id, time.Now().Unix()); err != nil {
 				log.WithError(err).WithField("id", id).Error("unack to delay fail")
 			}
 		}
@@ -53,13 +58,13 @@ func errorWorker() {
 	for range ticker.C {
 		begin := time.Now().Add(-time.Duration(TaskTTL)).Unix()
 		end := time.Now().Unix()
-		ids, err := getTasks(ErrorBucket, begin, end)
+		ids, err := backend.GetReadyIDs(ErrorBucket, begin, end)
 		if err != nil {
 			log.WithError(err).Error("get error tasks fail")
 			continue
 		}
 		for _, id := range ids {
-			if _, err := errorToDelay(id, time.Now().Unix()); err != nil {
+			if _, err := backend.ErrorToDelay(id, time.Now().Unix()); err != nil {
 				log.WithError(err).WithField("id", id).Error("error to delay fail")
 			}
 		}
@@ -67,16 +72,16 @@ func errorWorker() {
 }
 
 func callback(id string) {
-	task, err := getTask(id)
+	task, err := backend.GetTask(id)
 	if err != nil {
-		if err == redis.ErrNil {
-			if err = deleteTask(id); err != nil {
+		if err == ErrTaskNotFound {
+			if err = backend.DeleteTask(id); err != nil {
 				log.WithError(err).Error("delete task fail")
 			}
 		}
 		return
 	}
-	got, err := delayToUnack(id, time.Now().Unix())
+	got, err := backend.DelayToUnack(id, time.Now().Unix())
 	if err != nil {
 		log.WithError(err).Error("transfer from delay to unack fail")
 		return
@@ -89,7 +94,7 @@ func callback(id string) {
 		goto retry
 	}
 	if code == CodeSuccess {
-		if err = deleteTask(id); err != nil {
+		if err = backend.DeleteTask(id); err != nil {
 			log.WithError(err).Error("delete task fail")
 		}
 		return
@@ -99,18 +104,18 @@ func callback(id string) {
 retry:
 	task.HasRetry++
 	if task.HasRetry > task.MaxRetry {
-		if err = deleteTask(id); err != nil {
+		if err = backend.DeleteTask(id); err != nil {
 			log.WithError(err).Error("delete task fail")
 		}
 		return
 	}
-	err = updateTask(task)
+	err = backend.UpdateTask(task)
 	if err != nil {
 		log.WithError(err).Error("update task fail")
 	}
 	// (1,2,4,8...) * X
 	score := time.Now().Unix() + int64(math.Pow(2, float64(task.HasRetry-1)))*int64(RetryInterval)
-	err = unackToError(id, score)
+	err = backend.UnackToError(id, score)
 	if err != nil {
 		log.WithError(err).Error("transfer from unack to error bucket fail")
 		return

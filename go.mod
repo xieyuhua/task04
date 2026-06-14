@@ -6,6 +6,7 @@ require (
 	github.com/garyburd/redigo v1.6.4
 	github.com/pborman/uuid v1.2.1
 	github.com/sirupsen/logrus v1.9.4
+	github.com/streadway/amqp v1.1.0
 )
 
 require (

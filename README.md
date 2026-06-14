@@ -1,7 +1,7 @@
 ## LATER ![](https://travis-ci.org/btfak/later.svg?branch=master)
-Later is a redis base delay queue
+Later is a delay queue supporting both Redis and RabbitMQ as storage backends.
 
-### Usege
+### Usage
 golang version: 1.7+
 ```
 go build github.com/btfak/later
@@ -9,8 +9,22 @@ $: ./later -h
 Usage of ./later:
   -address string
     	serve listen address (default ":8080")
+  -backend string
+    	storage backend: redis or rabbitmq (default "redis")
   -redis string
     	redis address (default "redis://127.0.0.1:6379/0")
+  -rabbitmq string
+    	rabbitmq address (default "amqp://guest:guest@127.0.0.1:5672/")
+```
+
+**使用 Redis 后端（默认）：**
+```
+./later -backend redis -redis redis://127.0.0.1:6379/0
+```
+
+**使用 RabbitMQ 后端：**
+```
+./later -backend rabbitmq -rabbitmq amqp://guest:guest@127.0.0.1:5672/
 ```
 
 ### Feature
@@ -20,6 +34,18 @@ Usage of ./later:
 - Fail and retry
 - Reliable
 - Performance
+- **Dual backend**: Redis (Sorted Set polling) or RabbitMQ (DLX push)
+
+### Storage Backend
+
+| | Redis | RabbitMQ |
+|---|---|---|
+| 延迟机制 | Sorted Set + Worker 轮询 | DLX (Dead Letter Exchange) + per-message TTL |
+| 任务存储 | Redis KV (GET/SET) | 进程内 map (可扩展为外部存储) |
+| 消费模式 | Pull：Worker 定时 ZRANGEBYSCORE | Push：Consumer 自动接收到期消息 |
+| 持久化 | Redis AOF/RDB | RabbitMQ durable queue + 持久消息 |
+| 水平扩展 | 多实例竞争 ZADD 去重 | 多 Consumer 共享队列 |
+| 适用场景 | 高吞吐、已有 Redis 基础设施 | 需要消息队列语义、已有 RabbitMQ 基础设施 |
 
 
 ### Frontend API
@@ -97,7 +123,29 @@ Response http code: **200** success, **400** request invalid, **404** task not f
 
 ## Inside Later
 
-**Later has  four storage part**
+### Backend 接口
+
+所有存储操作通过 `Backend` 接口抽象，Redis 和 RabbitMQ 分别实现：
+
+```go
+type Backend interface {
+    Init() error
+    Close()
+    CreateTask(task *Task) error
+    GetTask(id string) (*Task, error)
+    UpdateTask(task *Task) error
+    DeleteTask(id string) error
+    GetReadyIDs(bucket string, begin, end int64) ([]string, error)
+    DelayToUnack(id string, score int64) (bool, error)
+    UnackToDelay(id string, score int64) (bool, error)
+    ErrorToDelay(id string, score int64) (bool, error)
+    UnackToError(id string, score int64) error
+}
+```
+
+### Redis 后端
+
+**Later has four storage part**
 
 * Task Pool: kv pairs hold fully task data
 * Delay Bucket: a sorted set store task id and execute time, which waiting to execute by worker
@@ -113,6 +161,20 @@ Response http code: **200** success, **400** request invalid, **404** task not f
 **Concurrence problem**
 
 In general, we will deploy multi instance, workers will get same task, but we judge result when move task from delay bucket to unack bucket, if `ZADD` return 1, worker move on, otherwise worker return immediately.
+
+### RabbitMQ 后端
+
+利用 RabbitMQ 的 **DLX (Dead Letter Exchange)** + **per-message TTL** 实现延迟投递：
+
+1. 创建任务时，消息发送到 delay queue，设置 `Expiration`（TTL = delay 秒数）
+2. 消息在 delay queue 中过期后，自动通过 DLX 转投到 unack queue
+3. Delay Worker 作为 Consumer 从 unack queue 消费，触发回调
+4. 回调失败时，消息发送到 error queue（设置指数退避 TTL），过期后再次通过 DLX 回到 delay queue
+
+**优势：**
+- Push 模式，无需轮询，延迟更精确
+- 天然支持多 Consumer 负载均衡
+- 利用 RabbitMQ 原生的消息确认/重入队机制
 
 ## 高并发与大数据量优化
 
