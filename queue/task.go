@@ -12,6 +12,15 @@ const (
 	RetryExponential
 )
 
+// TaskAckStatus represents the ack state of a task
+type TaskAckStatus int
+
+const (
+	AckPending    TaskAckStatus = iota // 等待确认
+	AckConfirmed                       // 已确认成功
+	AckExpired                         // 确认超时，需重试
+)
+
 // Task is the task to execute
 type Task struct {
 	// ID is a global unique id
@@ -36,6 +45,10 @@ type Task struct {
 	Content string
 	// CreatTime is the time task created
 	CreatTime int64
+	// AckDeadline is the unix timestamp by which the task must be acked
+	AckDeadline int64 `json:"ack_deadline"`
+	// AckStatus: 0=pending, 1=success, 2=timeout
+	AckStatus TaskAckStatus `json:"ack_status"`
 }
 
 const (

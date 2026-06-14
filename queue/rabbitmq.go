@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/streadway/amqp"
@@ -12,39 +13,38 @@ import (
 
 // RabbitMQBackend implements Backend using RabbitMQ with DLX for delay
 type RabbitMQBackend struct {
-	url      string
-	conn     *amqp.Connection
-	mu       sync.Mutex
-	taskMap  map[string]*Task       // in-memory task store (RabbitMQ has no KV)
-	ackMap   map[string]int64       // task ack deadline tracking
-	errMap   map[string]int64       // task error retry time tracking
-	delayCh  *amqp.Channel
-	unackCh  *amqp.Channel
-	errorCh  *amqp.Channel
+	url     string
+	conn    *amqp.Connection
+	mu      sync.Mutex
+	taskMap sync.Map // 并发安全的任务存储
+	ackMap  sync.Map // task ack deadline tracking: id -> int64
+	errMap  sync.Map // task error retry time tracking: id -> int64
+	delayCh *amqp.Channel
+	unackCh *amqp.Channel
+	errorCh *amqp.Channel
+	// 统计计数器
+	taskCount int64
 }
 
 // RabbitMQ queue/exchange names
 const (
-	delayExchange    = "later.delay.exchange"
-	delayQueue       = "later.delay.queue"
-	delayRoutingKey  = "later.delay"
+	delayExchange   = "later.delay.exchange"
+	delayQueue      = "later.delay.queue"
+	delayRoutingKey = "later.delay"
 
-	unackExchange    = "later.unack.exchange"
-	unackQueue       = "later.unack.queue"
-	unackRoutingKey  = "later.unack"
+	unackExchange   = "later.unack.exchange"
+	unackQueue      = "later.unack.queue"
+	unackRoutingKey = "later.unack"
 
-	errorExchange    = "later.error.exchange"
-	errorQueue       = "later.error.queue"
-	errorRoutingKey  = "later.error"
+	errorExchange   = "later.error.exchange"
+	errorQueue      = "later.error.queue"
+	errorRoutingKey = "later.error"
 )
 
 // NewRabbitMQBackend creates a RabbitMQBackend with the given AMQP URL
 func NewRabbitMQBackend(url string) *RabbitMQBackend {
 	return &RabbitMQBackend{
-		url:     url,
-		taskMap: make(map[string]*Task),
-		ackMap:  make(map[string]int64),
-		errMap:  make(map[string]int64),
+		url: url,
 	}
 }
 
@@ -117,9 +117,8 @@ func (b *RabbitMQBackend) Close() {
 }
 
 func (b *RabbitMQBackend) CreateTask(task *Task) error {
-	b.mu.Lock()
-	b.taskMap[task.ID] = task
-	b.mu.Unlock()
+	b.taskMap.Store(task.ID, task)
+	atomic.AddInt64(&b.taskCount, 1)
 
 	delay := task.ExecuteTime - time.Now().Unix()
 	if delay < 0 {
@@ -140,92 +139,84 @@ func (b *RabbitMQBackend) CreateTask(task *Task) error {
 }
 
 func (b *RabbitMQBackend) GetTask(id string) (*Task, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	task, ok := b.taskMap[id]
+	val, ok := b.taskMap.Load(id)
 	if !ok {
 		return nil, ErrTaskNotFound
 	}
-	return task, nil
+	return val.(*Task), nil
 }
 
 func (b *RabbitMQBackend) UpdateTask(task *Task) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.taskMap[task.ID] = task
+	b.taskMap.Store(task.ID, task)
 	return nil
 }
 
 func (b *RabbitMQBackend) DeleteTask(id string) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	delete(b.taskMap, id)
-	delete(b.ackMap, id)
-	delete(b.errMap, id)
+	b.taskMap.Delete(id)
+	b.ackMap.Delete(id)
+	b.errMap.Delete(id)
+	atomic.AddInt64(&b.taskCount, -1)
 	return nil
 }
 
 // GetReadyIDs scans the in-memory maps to find ready task IDs.
 // For RabbitMQ backend, bucket semantics are simulated with ackMap/errMap.
 func (b *RabbitMQBackend) GetReadyIDs(bucket string, begin, end int64) ([]string, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
 	var ids []string
 	switch bucket {
 	case UnackBucket:
-		for id, deadline := range b.ackMap {
+		b.ackMap.Range(func(key, value interface{}) bool {
+			deadline := value.(int64)
 			if deadline >= begin && deadline <= end {
-				ids = append(ids, id)
+				ids = append(ids, key.(string))
 			}
-		}
+			return true
+		})
 	case ErrorBucket:
-		for id, retryTime := range b.errMap {
+		b.errMap.Range(func(key, value interface{}) bool {
+			retryTime := value.(int64)
 			if retryTime >= begin && retryTime <= end {
-				ids = append(ids, id)
+				ids = append(ids, key.(string))
 			}
-		}
+			return true
+		})
 	}
 	return ids, nil
 }
 
 func (b *RabbitMQBackend) DelayToUnack(id string, score int64) (bool, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if _, ok := b.taskMap[id]; !ok {
+	if _, ok := b.taskMap.Load(id); !ok {
 		return false, nil
 	}
-	b.ackMap[id] = score
+	b.ackMap.Store(id, score)
 	return true, nil
 }
 
 func (b *RabbitMQBackend) UnackToDelay(id string, score int64) (bool, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if _, ok := b.ackMap[id]; !ok {
+	if _, ok := b.ackMap.Load(id); !ok {
 		return false, nil
 	}
-	delete(b.ackMap, id)
+	b.ackMap.Delete(id)
 
 	body, err := json.Marshal(id)
 	if err != nil {
 		return true, err
 	}
+	b.mu.Lock()
 	err = b.delayCh.Publish(delayExchange, delayRoutingKey, false, false, amqp.Publishing{
 		ContentType:  "application/json",
 		DeliveryMode: amqp.Persistent,
 		Body:         body,
 	})
+	b.mu.Unlock()
 	return true, err
 }
 
 func (b *RabbitMQBackend) ErrorToDelay(id string, score int64) (bool, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if _, ok := b.errMap[id]; !ok {
+	if _, ok := b.errMap.Load(id); !ok {
 		return false, nil
 	}
-	delete(b.errMap, id)
+	b.errMap.Delete(id)
 
 	delay := score - time.Now().Unix()
 	if delay < 0 {
@@ -236,31 +227,61 @@ func (b *RabbitMQBackend) ErrorToDelay(id string, score int64) (bool, error) {
 	if err != nil {
 		return true, err
 	}
+	b.mu.Lock()
 	err = b.delayCh.Publish(delayExchange, delayRoutingKey, false, false, amqp.Publishing{
 		ContentType:  "application/json",
 		DeliveryMode: amqp.Persistent,
 		Body:         body,
 		Expiration:   formatMs(delay),
 	})
+	b.mu.Unlock()
 	return true, err
 }
 
 func (b *RabbitMQBackend) UnackToError(id string, score int64) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	delete(b.ackMap, id)
-	b.errMap[id] = score
+	b.ackMap.Delete(id)
+	b.errMap.Store(id, score)
 
 	body, err := json.Marshal(id)
 	if err != nil {
 		return err
 	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	return b.errorCh.Publish(errorExchange, errorRoutingKey, false, false, amqp.Publishing{
 		ContentType:  "application/json",
 		DeliveryMode: amqp.Persistent,
 		Body:         body,
 		Expiration:   formatMs(score - time.Now().Unix()),
 	})
+}
+
+// AckTask 确认任务成功，删除任务及所有跟踪信息
+func (b *RabbitMQBackend) AckTask(id string) error {
+	b.taskMap.Delete(id)
+	b.ackMap.Delete(id)
+	b.errMap.Delete(id)
+	atomic.AddInt64(&b.taskCount, -1)
+	return nil
+}
+
+// GetAckTimeoutIDs 返回 ackMap 中 deadline 已过的任务 ID
+func (b *RabbitMQBackend) GetAckTimeoutIDs(now int64) ([]string, error) {
+	var ids []string
+	b.ackMap.Range(func(key, value interface{}) bool {
+		deadline := value.(int64)
+		if deadline <= now {
+			ids = append(ids, key.(string))
+		}
+		return true
+	})
+	return ids, nil
+}
+
+// SetAckDeadline 设置任务的 ACK 截止时间
+func (b *RabbitMQBackend) SetAckDeadline(id string, deadline int64) error {
+	b.ackMap.Store(id, deadline)
+	return nil
 }
 
 // ConsumeDelayQueue starts consuming from the delay queue (RabbitMQ DLX mechanism).
@@ -277,8 +298,14 @@ func (b *RabbitMQBackend) ConsumeDelayQueue() {
 			msg.Nack(false, false)
 			continue
 		}
-		go callback(taskID)
-		msg.Ack(false)
+		select {
+		case taskChan <- taskID:
+			msg.Ack(false)
+		default:
+			// worker 池满，拒绝并重新入队
+			msg.Nack(false, true)
+			log.Warn("worker pool full, requeue message: ", taskID)
+		}
 	}
 }
 

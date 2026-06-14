@@ -42,4 +42,12 @@ type Backend interface {
 	UnackToDelay(id string, score int64) (bool, error)
 	ErrorToDelay(id string, score int64) (bool, error)
 	UnackToError(id string, score int64) error
+
+	// ACK mechanism
+	// AckTask marks a task as successfully acknowledged and removes it
+	AckTask(id string) error
+	// GetAckTimeoutIDs returns task IDs whose ack deadline has passed
+	GetAckTimeoutIDs(now int64) ([]string, error)
+	// SetAckDeadline registers the ack deadline for a task (called after DelayToUnack)
+	SetAckDeadline(id string, deadline int64) error
 }

@@ -1,16 +1,38 @@
 package queue
 
 import (
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
+// taskChan 是任务分发通道，worker 池从中消费
+var taskChan chan string
+
+// once 确保 worker 池只初始化一次
+var once sync.Once
+
 // RunWorker starts all background workers
 func RunWorker() {
+	once.Do(func() {
+		taskChan = make(chan string, WorkerPoolSize*2)
+		// 启动 worker 池
+		for i := 0; i < WorkerPoolSize; i++ {
+			go worker()
+		}
+	})
 	go delayWorker()
 	go unackWorker()
 	go errorWorker()
+	go ackCheckWorker()
+}
+
+// worker 从 taskChan 消费任务并执行回调
+func worker() {
+	for id := range taskChan {
+		callback(id)
+	}
 }
 
 func delayWorker() {
@@ -29,7 +51,12 @@ func delayWorker() {
 			continue
 		}
 		for _, id := range ids {
-			go callback(id)
+			select {
+			case taskChan <- id:
+			default:
+				// worker 池已满，跳过本轮，避免阻塞
+				log.Warn("worker pool full, skip task: ", id)
+			}
 		}
 	}
 }
@@ -70,13 +97,47 @@ func errorWorker() {
 	}
 }
 
+// ackCheckWorker 定期检查 unack 桶中超时未确认的任务，将其重入延迟队列
+func ackCheckWorker() {
+	ticker := time.NewTicker(AckCheckInterval)
+	for range ticker.C {
+		now := time.Now().Unix()
+		ids, err := backend.GetAckTimeoutIDs(now)
+		if err != nil {
+			log.WithError(err).Error("get ack timeout tasks fail")
+			continue
+		}
+		for _, id := range ids {
+			task, err := backend.GetTask(id)
+			if err != nil {
+				if err == ErrTaskNotFound {
+					_ = backend.DeleteTask(id)
+				}
+				continue
+			}
+			task.HasRetry++
+			if task.HasRetry > task.MaxRetry {
+				_ = backend.DeleteTask(id)
+				log.WithField("id", id).Warn("ack timeout, max retry exceeded, discard task")
+				continue
+			}
+			task.AckStatus = AckExpired
+			_ = backend.UpdateTask(task)
+			score := time.Now().Unix() + task.NextRetryDelay()
+			if _, err := backend.UnackToDelay(id, score); err != nil {
+				log.WithError(err).WithField("id", id).Error("ack timeout, unack to delay fail")
+			} else {
+				log.WithField("id", id).Info("ack timeout, requeue task")
+			}
+		}
+	}
+}
+
 func callback(id string) {
 	task, err := backend.GetTask(id)
 	if err != nil {
 		if err == ErrTaskNotFound {
-			if err = backend.DeleteTask(id); err != nil {
-				log.WithError(err).Error("delete task fail")
-			}
+			_ = backend.DeleteTask(id)
 		}
 		return
 	}
@@ -88,14 +149,21 @@ func callback(id string) {
 	if !got {
 		return
 	}
+
+	// 设置 ACK 截止时间，将任务状态标记为等待确认
+	task.AckDeadline = time.Now().Add(AckTimeout).Unix()
+	task.AckStatus = AckPending
+	_ = backend.UpdateTask(task)
+	// 在后端注册 ACK 截止时间，用于超时检测
+	_ = backend.SetAckDeadline(id, task.AckDeadline)
+
 	code, err := post(task)
 	if err != nil {
 		goto retry
 	}
 	if code == CodeSuccess {
-		if err = backend.DeleteTask(id); err != nil {
-			log.WithError(err).Error("delete task fail")
-		}
+		// 回调成功，等待调用方显式 ACK
+		// 不再自动删除任务，由 /ack 接口确认后删除
 		return
 	}
 	log.Errorf("backend fail, code is %v", code)
@@ -103,15 +171,11 @@ func callback(id string) {
 retry:
 	task.HasRetry++
 	if task.HasRetry > task.MaxRetry {
-		if err = backend.DeleteTask(id); err != nil {
-			log.WithError(err).Error("delete task fail")
-		}
+		_ = backend.DeleteTask(id)
 		return
 	}
-	err = backend.UpdateTask(task)
-	if err != nil {
-		log.WithError(err).Error("update task fail")
-	}
+	task.AckStatus = AckExpired
+	_ = backend.UpdateTask(task)
 	score := time.Now().Unix() + task.NextRetryDelay()
 	err = backend.UnackToError(id, score)
 	if err != nil {
