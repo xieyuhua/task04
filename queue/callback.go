@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -54,6 +53,7 @@ func post(task *Task) (int, error) {
 	defer resp.Body.Close()
 
 	result, err := io.ReadAll(resp.Body)
+    log.Infof("task.id %s => result %s", task.ID, result)
 	if err != nil {
 		log.WithError(err).Error("io read from backend fail")
 		return 0, err
@@ -64,5 +64,7 @@ func post(task *Task) (int, error) {
 		log.WithError(err).Error("json unmarshal fail")
 		return 0, err
 	}
+	
+	
 	return response.Code, nil
 }

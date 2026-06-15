@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	redisURL    = flag.String("redis", "redis://127.0.0.1:6379/0", "redis address")
+	redisURL    = flag.String("redis","redis://:147258369@127.0.0.1:6379/3", "redis://:[password]@[host]:[port]/[database]")
 	rabbitmqURL = flag.String("rabbitmq", "amqp://guest:guest@127.0.0.1:5672/", "rabbitmq address")
 	backendType = flag.String("backend", "redis", "storage backend: redis or rabbitmq")
-	address     = flag.String("address", ":8080", "serve listen address")
+	address     = flag.String("address", ":2345", "serve listen address")
 )
 
 func init() {
