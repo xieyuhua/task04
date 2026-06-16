@@ -54,3 +54,27 @@
 {"level":"info","msg":"received signal interrupt, shutting down gracefully...","time":"2026-06-16 12:35:55"}
 {"level":"info","msg":"waiting for workers to drain...","time":"2026-06-16 12:35:55"}
 {"level":"info","msg":"draining for up to 10s...","time":"2026-06-16 12:35:55"}
+{"level":"info","msg":"server listen on ::2345 [backend=redis]","time":"2026-06-16 12:38:07"}
+{"level":"fatal","msg":"listen tcp :2345: bind: address already in use","time":"2026-06-16 12:38:07"}
+{"level":"info","msg":"shutdown complete","time":"2026-06-16 12:38:10"}
+{"level":"info","msg":"server listen on ::2345 [backend=redis]","time":"2026-06-16 12:38:12"}
+{"level":"debug","msg":"task.id 9393085c-b382-4f5b-aace-d5a9e87ce0b8 =\u003e result array(3) {\n  [\"id\"]=\u003e\n  string(36) \"9393085c-b382-4f5b-aace-d5a9e87ce0b8\"\n  [\"topic\"]=\u003e\n  string(5) \"hydee\"\n  [\"content\"]=\u003e\n  string(23) \"{\"phone\":\"13368259000\"}\"\n}\n{\"code\":100,\"data\":{\"id\":\"9393085c-b382-4f5b-aace-d5a9e87ce0b8\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 12:38:16"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:38:16"}
+{"level":"debug","msg":"task.id 092b0649-1a43-4e7c-adef-88072e850c3f =\u003e result array(3) {\n  [\"id\"]=\u003e\n  string(36) \"092b0649-1a43-4e7c-adef-88072e850c3f\"\n  [\"topic\"]=\u003e\n  string(5) \"hydee\"\n  [\"content\"]=\u003e\n  string(23) \"{\"phone\":\"13368259000\"}\"\n}\n{\"code\":100,\"data\":{\"id\":\"092b0649-1a43-4e7c-adef-88072e850c3f\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 12:38:16"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:38:16"}
+{"level":"debug","msg":"task.id 092b0649-1a43-4e7c-adef-88072e850c3f =\u003e result array(3) {\n  [\"id\"]=\u003e\n  string(36) \"092b0649-1a43-4e7c-adef-88072e850c3f\"\n  [\"topic\"]=\u003e\n  string(5) \"hydee\"\n  [\"content\"]=\u003e\n  string(23) \"{\"phone\":\"13368259000\"}\"\n}\n{\"code\":100,\"data\":{\"id\":\"092b0649-1a43-4e7c-adef-88072e850c3f\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 12:39:39"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:39:39"}
+{"level":"debug","msg":"task.id 9393085c-b382-4f5b-aace-d5a9e87ce0b8 =\u003e result array(3) {\n  [\"id\"]=\u003e\n  string(36) \"9393085c-b382-4f5b-aace-d5a9e87ce0b8\"\n  [\"topic\"]=\u003e\n  string(5) \"hydee\"\n  [\"content\"]=\u003e\n  string(23) \"{\"phone\":\"13368259000\"}\"\n}\n{\"code\":100,\"data\":{\"id\":\"9393085c-b382-4f5b-aace-d5a9e87ce0b8\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 12:39:39"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:39:39"}
+{"level":"debug","msg":"task.id 6ec50846-1712-4c7b-9f51-7c3a8c92f659 =\u003e result {\"code\":100,\"data\":{\"id\":\"6ec50846-1712-4c7b-9f51-7c3a8c92f659\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 12:42:17"}
+{"id":"6ec50846-1712-4c7b-9f51-7c3a8c92f659","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 12:42:17"}
+{"level":"debug","msg":"task.id a29ad3fd-ebb2-4fc8-9f64-c33676699578 =\u003e result {\"code\":100,\"data\":{\"id\":\"a29ad3fd-ebb2-4fc8-9f64-c33676699578\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 12:42:18"}
+{"id":"a29ad3fd-ebb2-4fc8-9f64-c33676699578","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 12:42:18"}
+{"level":"debug","msg":"task.id 9393085c-b382-4f5b-aace-d5a9e87ce0b8 =\u003e result {\"code\":100,\"data\":{\"id\":\"9393085c-b382-4f5b-aace-d5a9e87ce0b8\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 12:42:22"}
+{"level":"debug","msg":"task.id 092b0649-1a43-4e7c-adef-88072e850c3f =\u003e result {\"code\":100,\"data\":{\"id\":\"092b0649-1a43-4e7c-adef-88072e850c3f\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 12:42:22"}
+{"id":"9393085c-b382-4f5b-aace-d5a9e87ce0b8","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 12:42:22"}
+{"id":"092b0649-1a43-4e7c-adef-88072e850c3f","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 12:42:22"}
+{"level":"info","msg":"received signal interrupt, shutting down gracefully...","time":"2026-06-16 13:32:46"}
+{"level":"info","msg":"waiting for workers to drain...","time":"2026-06-16 13:32:46"}
+{"level":"info","msg":"draining for up to 10s...","time":"2026-06-16 13:32:46"}
+{"level":"info","msg":"shutdown complete","time":"2026-06-16 13:32:56"}

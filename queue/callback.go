@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,6 +37,8 @@ const (
 )
 
 func post(task *Task) (int, error) {
+	startTime := time.Now()
+
 	request := callbackRequest{
 		ID:      task.ID,
 		Topic:   task.Topic,
@@ -55,7 +59,8 @@ func post(task *Task) (int, error) {
 	defer resp.Body.Close()
 
 	result, err := io.ReadAll(io.LimitReader(resp.Body, 1<<16)) // 限制 64KB，防止 OOM
-	log.Debugf("task.id %s => result %s", task.ID, result)
+	duration := time.Since(startTime).Milliseconds()
+	log.Debugf("task.id %s => http_status=%d duration_ms=%d result=%s", task.ID, resp.StatusCode, duration, result)
 	if err != nil {
 		log.WithError(err).Error("io read from backend fail")
 		return 0, err

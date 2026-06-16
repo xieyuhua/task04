@@ -168,22 +168,26 @@ func ackCheckWorker() {
 // ────────────── callback 流程（无 goto 重构版）──────────────
 
 func callback(id string) {
+	startTime := time.Now()
+
 	task := fetchAndPrepareTask(id)
 	if task == nil {
 		return
 	}
 
 	code, err := post(task)
+	duration := time.Since(startTime).Milliseconds()
 	if err != nil {
+		log.WithField("id", id).WithField("duration_ms", duration).Error("http post fail")
 		retryTask(task, id)
 		return
 	}
 	if code == CodeSuccess || code == CodeSuccess200 || code == CodeSuccess0 {
 		_ = backend.AckTask(id)
-		log.WithField("id", id).Infof("auto ack success, code=%d", code)
+		log.WithField("id", id).WithField("duration_ms", duration).Infof("auto ack success, code=%d", code)
 		return
 	}
-	log.Errorf("backend fail, code is %v", code)
+	log.WithField("id", id).WithField("duration_ms", duration).Errorf("backend fail, code=%d", code)
 	retryTask(task, id)
 }
 
