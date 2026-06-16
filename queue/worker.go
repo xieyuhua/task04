@@ -161,9 +161,10 @@ func callback(id string) {
 	if err != nil {
 		goto retry
 	}
-	if code == CodeSuccess {
-		// 回调成功，等待调用方显式 ACK
-		// 不再自动删除任务，由 /ack 接口确认后删除
+	if code == CodeSuccess || code == CodeSuccess200 || code == CodeSuccess0 {
+		// 回调 HTTP 成功（code=100/200/0），自动 ACK 确认
+		_ = backend.AckTask(id)
+		log.WithField("id", id).Infof("auto ack success, code=%d", code)
 		return
 	}
 	log.Errorf("backend fail, code is %v", code)

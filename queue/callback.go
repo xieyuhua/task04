@@ -29,6 +29,8 @@ type callbackResponse struct {
 
 const (
 	CodeSuccess        = 100
+	CodeSuccess200     = 200
+	CodeSuccess0       = 0
 	CodeTooManyRequest = 101
 )
 
