@@ -14,3 +14,43 @@
 {"level":"info","msg":"task.id 23290124-4e6c-4404-b076-51633a14c9a0 =\u003e result {\"code\":100,\"data\":{\"id\":\"23290124-4e6c-4404-b076-51633a14c9a0\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 11:16:41"}
 {"id":"23290124-4e6c-4404-b076-51633a14c9a0","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 11:16:41"}
 {"level":"info","msg":"server listen on ::2345 [backend=redis]","time":"2026-06-16 11:17:37"}
+{"level":"info","msg":"server listen on ::2345 [backend=redis]","time":"2026-06-16 12:27:26"}
+{"level":"info","msg":"received signal interrupt, shutting down gracefully...","time":"2026-06-16 12:27:28"}
+{"level":"info","msg":"waiting for workers to drain...","time":"2026-06-16 12:27:28"}
+{"level":"info","msg":"draining for up to 10s...","time":"2026-06-16 12:27:28"}
+{"level":"info","msg":"shutdown complete","time":"2026-06-16 12:27:38"}
+{"level":"info","msg":"server listen on ::2345 [backend=redis]","time":"2026-06-16 12:27:38"}
+{"level":"info","msg":"received signal interrupt, shutting down gracefully...","time":"2026-06-16 12:27:41"}
+{"level":"info","msg":"waiting for workers to drain...","time":"2026-06-16 12:27:41"}
+{"level":"info","msg":"draining for up to 10s...","time":"2026-06-16 12:27:41"}
+{"level":"info","msg":"shutdown complete","time":"2026-06-16 12:27:51"}
+{"level":"info","msg":"server listen on ::2345 [backend=redis]","time":"2026-06-16 12:28:34"}
+{"id":"5c6dc89f-67ac-452a-b9bc-27822acee3aa","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 12:28:40"}
+{"id":"8595b560-447d-4fed-beaa-32173aa07896","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 12:28:42"}
+{"id":"dc98b7f7-efc1-4131-a987-107dc89b9a1a","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 12:28:44"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:29:17"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:29:40"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:30:23"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:31:46"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:34:29"}
+{"level":"info","msg":"received signal interrupt, shutting down gracefully...","time":"2026-06-16 12:34:36"}
+{"level":"info","msg":"waiting for workers to drain...","time":"2026-06-16 12:34:36"}
+{"level":"info","msg":"draining for up to 10s...","time":"2026-06-16 12:34:36"}
+{"level":"info","msg":"shutdown complete","time":"2026-06-16 12:34:46"}
+{"level":"info","msg":"server listen on ::2345 [backend=redis]","time":"2026-06-16 12:34:46"}
+{"level":"info","msg":"received signal interrupt, shutting down gracefully...","time":"2026-06-16 12:34:48"}
+{"level":"info","msg":"waiting for workers to drain...","time":"2026-06-16 12:34:48"}
+{"level":"info","msg":"draining for up to 10s...","time":"2026-06-16 12:34:48"}
+{"level":"info","msg":"shutdown complete","time":"2026-06-16 12:34:58"}
+{"level":"info","msg":"server listen on ::2345 [backend=redis]","time":"2026-06-16 12:35:20"}
+{"level":"debug","msg":"task.id 092b0649-1a43-4e7c-adef-88072e850c3f =\u003e result array(3) {\n  [\"id\"]=\u003e\n  string(36) \"092b0649-1a43-4e7c-adef-88072e850c3f\"\n  [\"topic\"]=\u003e\n  string(5) \"hydee\"\n  [\"content\"]=\u003e\n  string(23) \"{\"phone\":\"13368259000\"}\"\n}\n{\"code\":100,\"data\":{\"id\":\"092b0649-1a43-4e7c-adef-88072e850c3f\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 12:35:27"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:35:27"}
+{"level":"debug","msg":"task.id 9393085c-b382-4f5b-aace-d5a9e87ce0b8 =\u003e result array(3) {\n  [\"id\"]=\u003e\n  string(36) \"9393085c-b382-4f5b-aace-d5a9e87ce0b8\"\n  [\"topic\"]=\u003e\n  string(5) \"hydee\"\n  [\"content\"]=\u003e\n  string(23) \"{\"phone\":\"13368259000\"}\"\n}\n{\"code\":100,\"data\":{\"id\":\"9393085c-b382-4f5b-aace-d5a9e87ce0b8\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 12:35:29"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:35:29"}
+{"level":"debug","msg":"task.id 9393085c-b382-4f5b-aace-d5a9e87ce0b8 =\u003e result array(3) {\n  [\"id\"]=\u003e\n  string(36) \"9393085c-b382-4f5b-aace-d5a9e87ce0b8\"\n  [\"topic\"]=\u003e\n  string(5) \"hydee\"\n  [\"content\"]=\u003e\n  string(23) \"{\"phone\":\"13368259000\"}\"\n}\n{\"code\":100,\"data\":{\"id\":\"9393085c-b382-4f5b-aace-d5a9e87ce0b8\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 12:35:32"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:35:32"}
+{"level":"debug","msg":"task.id 092b0649-1a43-4e7c-adef-88072e850c3f =\u003e result array(3) {\n  [\"id\"]=\u003e\n  string(36) \"092b0649-1a43-4e7c-adef-88072e850c3f\"\n  [\"topic\"]=\u003e\n  string(5) \"hydee\"\n  [\"content\"]=\u003e\n  string(23) \"{\"phone\":\"13368259000\"}\"\n}\n{\"code\":100,\"data\":{\"id\":\"092b0649-1a43-4e7c-adef-88072e850c3f\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 12:35:50"}
+{"error":"invalid character 'a' looking for beginning of value","level":"error","msg":"json unmarshal fail","time":"2026-06-16 12:35:50"}
+{"level":"info","msg":"received signal interrupt, shutting down gracefully...","time":"2026-06-16 12:35:55"}
+{"level":"info","msg":"waiting for workers to drain...","time":"2026-06-16 12:35:55"}
+{"level":"info","msg":"draining for up to 10s...","time":"2026-06-16 12:35:55"}

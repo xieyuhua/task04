@@ -24,6 +24,7 @@ var (
 	callbackTTR   = flag.Int("ctt", 3, "callback http timeout in seconds")
 	ackTimeout    = flag.Int("acktimeout", 30, "ack timeout in seconds, unacked tasks will be requeued")
 	maxRetryCap   = flag.Int64("maxretrycap", 86400, "max retry delay cap in seconds for exponential backoff")
+	logLevel      = flag.String("loglevel", "info", "log level: panic, fatal, error, warn, info, debug, trace")
 )
 
 func init() {
@@ -32,6 +33,14 @@ func init() {
 
 func main() {
 	flag.Parse()
+
+	// 设置日志级别
+	lvl, parseErr := log.ParseLevel(*logLevel)
+	if parseErr != nil {
+		fmt.Fprintf(os.Stderr, "invalid log level: %s, use debug/info/warn/error\n", *logLevel)
+		os.Exit(1)
+	}
+	log.SetLevel(lvl)
 
 	// 初始化按天分割的日志文件
 	queue.InitLogger(*logDir, *logMaxDays)
