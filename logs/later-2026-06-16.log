@@ -1,0 +1,16 @@
+{"level":"info","msg":"server listen on ::2345 [backend=redis]","time":"2026-06-16 11:16:03"}
+{"level":"info","msg":"task.id 69d0abed-cc57-4f3f-990c-cc031ee00d8c =\u003e result {\"code\":100,\"data\":{\"id\":\"69d0abed-cc57-4f3f-990c-cc031ee00d8c\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 11:16:09"}
+{"id":"69d0abed-cc57-4f3f-990c-cc031ee00d8c","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 11:16:09"}
+{"level":"info","msg":"task.id c79e7d9b-06ce-4889-a63e-782b56869a90 =\u003e result {\"code\":100,\"data\":{\"id\":\"c79e7d9b-06ce-4889-a63e-782b56869a90\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 11:16:10"}
+{"id":"c79e7d9b-06ce-4889-a63e-782b56869a90","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 11:16:10"}
+{"level":"info","msg":"task.id 4b6a1b9c-d5ec-4c78-b3e2-ebbf7b54e45c =\u003e result {\"code\":100,\"data\":{\"id\":\"4b6a1b9c-d5ec-4c78-b3e2-ebbf7b54e45c\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 11:16:38"}
+{"id":"4b6a1b9c-d5ec-4c78-b3e2-ebbf7b54e45c","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 11:16:38"}
+{"level":"info","msg":"task.id f45a7f96-0f30-41ee-a9f5-4965ee9c9fff =\u003e result {\"code\":100,\"data\":{\"id\":\"f45a7f96-0f30-41ee-a9f5-4965ee9c9fff\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 11:16:39"}
+{"id":"f45a7f96-0f30-41ee-a9f5-4965ee9c9fff","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 11:16:39"}
+{"level":"info","msg":"task.id 1b685bef-95d2-41c3-a337-2e2a3a203bb5 =\u003e result {\"code\":100,\"data\":{\"id\":\"1b685bef-95d2-41c3-a337-2e2a3a203bb5\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 11:16:39"}
+{"id":"1b685bef-95d2-41c3-a337-2e2a3a203bb5","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 11:16:39"}
+{"level":"info","msg":"task.id 686b0c03-acd1-4e43-afb9-6466b4884f7c =\u003e result {\"code\":100,\"data\":{\"id\":\"686b0c03-acd1-4e43-afb9-6466b4884f7c\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 11:16:40"}
+{"id":"686b0c03-acd1-4e43-afb9-6466b4884f7c","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 11:16:40"}
+{"level":"info","msg":"task.id 23290124-4e6c-4404-b076-51633a14c9a0 =\u003e result {\"code\":100,\"data\":{\"id\":\"23290124-4e6c-4404-b076-51633a14c9a0\",\"topic\":\"hydee\",\"content\":\"{\\\"phone\\\":\\\"13368259000\\\"}\"}}","time":"2026-06-16 11:16:41"}
+{"id":"23290124-4e6c-4404-b076-51633a14c9a0","level":"info","msg":"auto ack success, code=100","time":"2026-06-16 11:16:41"}
+{"level":"info","msg":"server listen on ::2345 [backend=redis]","time":"2026-06-16 11:17:37"}

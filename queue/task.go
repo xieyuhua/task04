@@ -51,18 +51,41 @@ type Task struct {
 	AckStatus TaskAckStatus `json:"ack_status"`
 }
 
+// Redis Key 命名规范: later:{category}:{name}
+// - later:task:{id}     → 任务数据 (String)
+// - later:bucket:delay  → 延迟桶 (ZSet)
+// - later:bucket:unack  → 未确认桶 (ZSet)
+// - later:bucket:error  → 错误桶 (ZSet)
+// - later:bucket:ack_dl → ACK 截止桶 (ZSet)
 const (
-	DelayBucket = "later_delay"
-	UnackBucket = "later_unack"
-	ErrorBucket = "later_error"
+	// Redis key 命名空间前缀
+	KeyPrefix = "later"
+
+	// 桶名称（有序集合）
+	DelayBucket      = "later:bucket:delay"
+	UnackBucket      = "later:bucket:unack"
+	ErrorBucket      = "later:bucket:error"
+	AckDeadlineBucket = "later:bucket:ack_dl"
 )
+
+// TaskKey 返回任务数据在 Redis 中的存储 key
+func TaskKey(id string) string {
+	return "later:task:" + id
+}
+
+// MaxRetryDelayCap 指数退避延迟上限（秒），默认 86400（24 小时）
+var MaxRetryDelayCap int64 = 86400
 
 // NextRetryDelay returns the delay in seconds before the next retry
 func (t *Task) NextRetryDelay() int64 {
 	switch t.RetryStrategy {
 	case RetryExponential:
-		// 2, 4, 8, 16... * RetryInterval
-		return int64(1<<uint(t.HasRetry)) * t.RetryInterval
+		// 2, 4, 8, 16... * RetryInterval，上限 MaxRetryDelayCap
+		delay := int64(1<<uint(t.HasRetry)) * t.RetryInterval
+		if delay > MaxRetryDelayCap {
+			return MaxRetryDelayCap
+		}
+		return delay
 	default: // RetryFixed
 		return t.RetryInterval
 	}

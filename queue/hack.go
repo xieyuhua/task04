@@ -1,25 +1,13 @@
 package queue
 
-import (
-	"reflect"
-	"unsafe"
-)
+import "unsafe"
 
-// No copy to change slice to string, use your own risk
-func String(b []byte) (s string) {
-	pbytes := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	pstring := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	pstring.Data = pbytes.Data
-	pstring.Len = pbytes.Len
-	return
+// String converts a byte slice to a string without memory copy (Go 1.20+).
+func String(b []byte) string {
+	return unsafe.String(unsafe.SliceData(b), len(b))
 }
 
-// No copy to change string to slice, use your own risk
-func Slice(s string) (b []byte) {
-	pbytes := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	pstring := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	pbytes.Data = pstring.Data
-	pbytes.Len = pstring.Len
-	pbytes.Cap = pstring.Len
-	return
+// Slice converts a string to a byte slice without memory copy (Go 1.20+).
+func Slice(s string) []byte {
+	return unsafe.Slice(unsafe.StringData(s), len(s))
 }

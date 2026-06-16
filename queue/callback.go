@@ -54,8 +54,8 @@ func post(task *Task) (int, error) {
 	}
 	defer resp.Body.Close()
 
-	result, err := io.ReadAll(resp.Body)
-    log.Infof("task.id %s => result %s", task.ID, result)
+	result, err := io.ReadAll(io.LimitReader(resp.Body, 1<<16)) // 限制 64KB，防止 OOM
+	log.Debugf("task.id %s => result %s", task.ID, result)
 	if err != nil {
 		log.WithError(err).Error("io read from backend fail")
 		return 0, err

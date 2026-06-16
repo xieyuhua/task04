@@ -2,6 +2,7 @@ package queue
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -18,7 +19,15 @@ func ListenAndServe(addr string) error {
 	mux.HandleFunc("/delete", deleteHandler)
 	mux.HandleFunc("/query", queryHandler)
 	mux.HandleFunc("/ack", ackHandler)
-	server := http.Server{Addr: addr, Handler: mux}
+	mux.HandleFunc("/health", healthHandler)
+	mux.HandleFunc("/metrics", metricsHandler)
+	server := http.Server{
+		Addr:         addr,
+		Handler:      mux,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
 	return server.ListenAndServe()
 }
 
@@ -42,6 +51,32 @@ type createResponse struct {
 func createHandler(w http.ResponseWriter, r *http.Request) {
 	var request createRequest
 	if ok := decode(w, r, &request); !ok {
+		return
+	}
+
+	// ── 参数校验 ──
+	if request.Callback == "" {
+		http.Error(w, "callback URL is required", 400)
+		return
+	}
+	if request.Delay < 0 {
+		http.Error(w, "delay must be >= 0", 400)
+		return
+	}
+	if request.Delay > 86400*30 {
+		http.Error(w, "delay too large (max 30 days)", 400)
+		return
+	}
+	if request.Retry < 0 || request.Retry > 100 {
+		http.Error(w, "retry must be 0-100", 400)
+		return
+	}
+	if len(request.Content) > 1<<20 { // 1MB 上限
+		http.Error(w, "content too large (max 1MB)", 400)
+		return
+	}
+	if request.RetryStrategy != "" && request.RetryStrategy != "fixed" && request.RetryStrategy != "exponential" {
+		http.Error(w, "retry_strategy must be 'fixed' or 'exponential'", 400)
 		return
 	}
 
@@ -227,4 +262,41 @@ func write(w http.ResponseWriter, obj interface{}) {
 		return
 	}
 	w.Write(respData)
+}
+
+// ────────────── 健康检查 & 监控 ──────────────
+
+// healthHandler 返回服务健康状态
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	status := "ok"
+	if backend == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(503)
+		json.NewEncoder(w).Encode(map[string]string{"status": "unhealthy", "reason": "no backend"})
+		return
+	}
+	if mp, ok := backend.(MetricsProvider); ok {
+		if err := mp.Ping(); err != nil {
+			status = "unhealthy"
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(503)
+			json.NewEncoder(w).Encode(map[string]string{"status": status, "reason": err.Error()})
+			return
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(map[string]string{"status": status, "shutting_down": fmt.Sprintf("%t", IsShuttingDown())})
+}
+
+// metricsHandler 返回各桶任务数量统计
+func metricsHandler(w http.ResponseWriter, r *http.Request) {
+	if backend == nil {
+		w.WriteHeader(503)
+		return
+	}
+	metrics := GetQueueLengths(backend)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	json.NewEncoder(w).Encode(metrics)
 }
